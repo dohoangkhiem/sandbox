@@ -7,12 +7,12 @@
 
 /target
 
-# Eclipse
+# Eclipse #
 *.project
 *.classpath
 .settings
 
-# Idea
+# Idea #
 *.ipr
 *.idea
 *.iml
