@@ -1,0 +1,16 @@
+application: content-detector
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /static
+  static_dir: static
+
+- url: /loader32.gif
+  static_files: static/loader32.gif
+  upload: static/loader32.gif
+  
+- url: /.*
+  script: content-detector.app
