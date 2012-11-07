@@ -103,6 +103,12 @@ class MainPage(webapp2.RequestHandler):
                     text-decoration: none;
                     color: gray;
                 }
+                                
+                .logo-image {
+                    width: 90px;
+                    height: 70px;
+                }
+                
               </style>
             </head>
             <body>
@@ -118,9 +124,11 @@ class MainPage(webapp2.RequestHandler):
                 <a target="_blank" id="original">Original article</a>
                 <div class="clear"></div>
                 <div id="result"></div>
-                <div class="clear" style="height: 50px;"></div>
+                <div class="clear" style="height: 100px;"></div>
                 <div id="footer" class="footer">
-                    <div class="footer-content">by <a target="_blank" href="https://github.com/dohoangkhiem">dohoangkhiem@gmail.com</a></div>
+                    <div class="footer-content">
+                    by <a target="_blank" href="https://github.com/dohoangkhiem">dohoangkhiem@gmail.com</a>
+                    <a target="_blank" href="http://appengine.google.com"><img src="/static/gae-logo.jpg" class="logo-image" /></a>
                 </div>
               </div>
             </body>
