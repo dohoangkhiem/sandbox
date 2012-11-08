@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# author: dohoangkhiem@gmail.com
+
 #WORKING_DIR="/vagrant/delivery"
 WORKING_DIR="/home/khiem/tmp/uc4-test"
 #GIT_REPO="/vagrant/git/repo"
@@ -76,7 +78,7 @@ runDaemon() {
     COUNTER=$((COUNTER+1))
     deliveryLog "info" "New file create $f"
     if [[ "$f" == *.tar.gz || "$f" == *.zip ]]; then
-      processArchive "$f"
+      processArchive "$f" &
     fi
   done
 }
@@ -89,7 +91,7 @@ processArchive() {
   if [[ "$f" == *.tar.gz ]]; then
     deliveryLog "debug" "Extracting $f to $TMP_DIR/$COUNTER .."
     mkdir "/$TMP_DIR/$COUNTER"
-    tar xvf "$WORKING_DIR/$f" -C "$TMP_DIR/$COUNTER"
+    tar xvf "$WORKING_DIR/$f" -C "$TMP_DIR/$COUNTER" > /dev/null
   elif [[ "$f" == *.zip ]]; then
     deliveryLog "debug" "Extracting $f to /$TMP_DIR/$COUNTER .."
     mkdir "/$TMP_DIR/$COUNTER"
@@ -148,10 +150,10 @@ processArchive() {
       # force to switch branch
       local committed=-1
       (
-        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO checkout $branch &&
+        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO checkout $branch > /dev/null 2>&1 &&
         cp $tmp/$filename $GIT_REPO/$filename &&
-        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO add $GIT_REPO/$filename &&
-        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO commit -m "$message"
+        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO add $GIT_REPO/$filename > /dev/null 2>&1 &&
+        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO commit -m "$message" > /dev/null 2>&1
         committed=0
         deliveryLog "info" "Committed file $filename to $branch successfully"
       ) ||
@@ -171,7 +173,7 @@ processArchive() {
         deliveryLog "debug" "Got war archive: $filename"
         # checkout the given branch on git dir
         # ensure the given branch is checked out on git repo
-        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO checkout $branch
+        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO checkout > /dev/null 2>&1
         # check for the war file
         # deploy war file on Tomcat
         # copy to Tomcat's webapp as [branchname]-[appname].war
