@@ -153,8 +153,8 @@ processArchive() {
         git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO checkout $branch > /dev/null 2>&1 &&
         cp $tmp/$filename $GIT_REPO/$filename &&
         git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO add $GIT_REPO/$filename > /dev/null 2>&1 &&
-        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO commit -m "$message" > /dev/null 2>&1
-        committed=0
+        git --git-dir=$GIT_REPO/.git --work-tree=$GIT_REPO commit -m "$message" > /dev/null 2>&1 &&
+        committed=0 &&
         deliveryLog "info" "Committed file $filename to $branch successfully"
       ) ||
       (
