@@ -7,15 +7,39 @@ import traceback
 global api
 global me
 
+
+
 def setup_key():
   global api, me
-  api = twitter.Api(consumer_key='zzzzzzzzzzzzzzz',
-    consumer_secret='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
-    access_token_key='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
-    access_token_secret='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
+  api = twitter.Api(consumer_key='cJIc5ji9EMQDX3XT1fqZg',
+    consumer_secret='KOZhtQAfjw8D2pDTTCWRLbQYB4hVJ0dvBoMSWPmAY',
+    access_token_key='557374910-1Y5JqEllS2tR5nFnBMfdJy6XFodY9bH7W8n6nWgI',
+    access_token_secret='TgSZBpkDXFFS5DTjn3tcVuTSpfxruefF6NaEm68k9DY')
 
   me = api.VerifyCredentials()
   print me
+
+def change_key():
+  global api, me
+  api = twitter.Api(consumer_key='7noNko5fpodyWthwxTpEzA',
+    consumer_secret='I7p3NKWpyq83yZzJy62GFQcbK9SwBSjlFQXaV1vn9Qk',
+    access_token_key='557374910-aHNDrTJH97rmvpg0SIRvAxeP0yKnfGOb7GZdfr13',
+    access_token_secret='dSdwle7MYRDK31BdLmVKSWbCCzGNBtWN5NT7xpG7E')
+  
+  me = api.VerifyCredentials()
+  print me
+  print "OAuth key has been changed successfully."
+  
+def new_key():
+  global api, me
+  api = twitter.Api(consumer_key='eqNmKOPLWiZwJDOPnA9g',
+    consumer_secret='PnRzgbtlKWBhWFhb3hRRrWcJsO0lnIxSuugsZ7Ui0',
+    access_token_key='557374910-lWbRRKnIAGcez0diHX7KNRfGDU12grJLHcwI1evk',
+    access_token_secret='OL7DIZsZYoZpiRuGZocScN0u5IMHj0N5lh5vnn3U')
+  
+  me = api.VerifyCredentials()
+  print me
+  print "OAuth key has been changed successfully."
 
 def get_friends():
   print "============================================="
@@ -148,7 +172,7 @@ def waitFor():
   
 # consumes 3*11 = 33 requests
 # result: 30 users, 30 followings at level 1
-def build_graph_level_1():
+def build_graph_level1():
   khiem_id = 557374910
   minh_le_id = 19104945
   nguyenthaiha_id = 47043030
@@ -156,7 +180,7 @@ def build_graph_level_1():
   khiem = api.GetUser(khiem_id)
   minh_le = api.GetUser(minh_le_id)
   nguyenthaiha = api.GetUser(nguyenthaiha_id)
-  users_l1.extend([khiem, minh_le, nguyenthaiha])
+  #users_l1.extend([khiem, minh_le, nguyenthaiha])
   list1 = findTopFriends(userid=khiem_id)
   list2 = findTopFriends(userid=minh_le_id)
   list3 = findTopFriends(userid=nguyenthaiha_id)
@@ -178,7 +202,7 @@ def build_graph_level_1():
   for u in list3:
     followings.append({"user_id": nguyenthaiha_id, "friend_id": u.id})
   
-  datastore.store(data, "twitter_users_level1", "Twitter")
+  datastore.store(data, "twitter_users_level1_new", "Twitter")
   datastore.store(followings, "twitter_followings_level1", "Twitter")
   
 # consumes 30*11 = 330 authenticated requests to Twitter
@@ -222,20 +246,28 @@ def build_graph_level3(start, stop):
   try:
     for user in users_l2:
       print str(index) + ": Find top friends for user " + user['name']
-      friends = findTopFriends(user["id"])
-      for friend in friends:
-        followings.append({"user_id": user["id"], "friend_id": friend.id})
-        if friend.id not in user_ids:
-          user_ids.append(friend.id)
-          users_l3.append(friend.AsDict())
-    
-      print str(index) + ": Find top followers for user " + user['name']
-      followers = findTopFollowers(user['id'])
-      for follower in followers:
-        followings.append({"user_id": follower.id, "friend_id": user['id']})
-        if follower.id not in user_ids:
-          user_ids.append(follower.id)
-          users_l3.append(follower.AsDict())
+      try:
+        friends = findTopFriends(user["id"])
+        for friend in friends:
+          followings.append({"user_id": user["id"], "friend_id": friend.id})
+          if friend.id not in user_ids:
+            user_ids.append(friend.id)
+            users_l3.append(friend.AsDict())
+      except Exception as e:
+        print "Exception occurs when find top friends of user " + user['name']
+        traceback.print_exc()
+      
+      try:    
+        print str(index) + ": Find top followers for user " + user['name']
+        followers = findTopFollowers(user['id'])
+        for follower in followers:
+          followings.append({"user_id": follower.id, "friend_id": user['id']})
+          if follower.id not in user_ids:
+            user_ids.append(follower.id)
+            users_l3.append(follower.AsDict())
+      except Exception as e:
+        print "Exception occurs when find top followers of user " + user['name']
+        traceback.print_exc()
       index = index + 1
   except Exception as e:
     traceback.print_exc()
@@ -258,11 +290,63 @@ def getTopTweets(userid=-1, screen_name=None):
   username = screen_name if (screen_name is not None and screen_name != '') else " id " + str(userid)
   user = userid if type(userid) is int and userid > 0 else screen_name
   print 'Getting tweets from user ' + username
-  statuses = api.GetUserTimeline(user, count=100, include_rts=True, include_entities=True)
-  statuses.sort(tweet_compare)
+  statuses = api.GetUserTimeline(user, count=200, include_rts=True, include_entities=True)
+  #statuses.sort(tweet_compare)
   print "Total tweets of user " + username + ": " + str(len(statuses))
-  return statuses[0:10]
+  #return statuses[0:50]
+  return statuses
 
+def getTweets(start, stop):
+  tweet_entities = ["id", "truncated", "hashtags", "urls", "user_mentions", "text", "source", "retweet_count", "created_at", "user", "favorited"]
+  users = list(datastore.load('twitter_users_cleaned'))
+  total_users = len(users)
+  if (stop - start > 300):
+    print "Max (stop-start) is 300"
+    return
+  users = users[start:stop]
+  data = []
+  index = start
+  try:
+    for u in users:
+      print str(index) + ": Getting tweets for user " + u['name']
+      try:
+        tweets = getTopTweets(userid=int(u['id']))
+        if (tweets is not None):
+          print "Fetched " + str(len(tweets)) + " tweets of user " + u['name']
+          for t in tweets:
+            st = t.AsDict()
+            obj = {}
+            for prop in tweet_entities:
+              if prop not in st:
+                if prop == "retweet_count" or prop == "favorited" or prop == "truncated":
+                  obj[prop] = 0
+                else:
+                  obj[prop] = ''
+              elif prop == "user":
+                user_obj = dict(st["user"])
+                obj['user_id'] = user_obj['id']
+                obj['user_screen_name'] = user_obj['screen_name']
+                obj['user_name'] = user_obj['name']
+              else:
+                obj[prop] = st[prop]
+            data.append(obj)
+        else:
+          print "Empty tweets for user " + u['name']
+      except Exception as e:
+        print 'Exception occurs when fetch tweets for user ' + u['name']
+        traceback.print_exc()  
+      index = index + 1
+  except Exception as e:
+    traceback.print_exc()
+    print str(datetime.now())
+    return
+  
+  
+  
+  datastore.store(data, 'twitter_tweets_cleaned_' + str(start) + '_' + str(stop-1), '')
+  
+  print str(datetime.now()) +  ' Result at segment ' + str(start) + ' -> ' + str(stop-1) + '/' + str(total_users) + ': Total ' + str(len(data)) + ' tweets'
+  
 # compare two tweets based on the number of hashtags and urls
 # some other factors: retweet_count, mentions, 
 def tweet_compare(t1, t2):
@@ -281,15 +365,33 @@ def count_links(tweet):
 def count_mentions(tweet):
   return len(re.findall(r'(\A|\s)@(\w+)', tweet))
     
+def rebuild_users_level1():
+  users = list(datastore.load('khiem.twitter_users_level1'))
+  users = users[3:]
+  user_ids = []
+  for u in users:
+    user_ids.append(u["id"])
+  
+  users = api.UsersLookup(user_id=user_ids)
+  user_data = []
+  for u in users:
+    user_data.append(u.AsDict())
+  print "Successfully retrieve " + str(len(users)) + " users info"
+  datastore.store(user_data, 'twitter_users_level1_rebuild', '')
+  
 def main():
+  print "main() started at " + str(datetime.now())
   try:
-   setup_key()
-   #change_key()
-   build_graph_level3(120,135)
-   #tweets = getTopTweets(screen_name='britneyspears')
-   #for status in tweets:
-   # print str(status.id) + ": " + str(status.created_at) + ", text: " + status.text + ", " + str(len(status.hashtags)) + ", " + str(len(status.urls))
-   #waitFor()
+    setup_key()
+    #change_key()
+    #build_graph_level3(195,210)
+    #tweets = getTopTweets(screen_name='britneyspears')
+    #for status in tweets:
+    #  print str(status.id) + ": " + str(status.created_at) + ", text: " + status.text + ", " + str(len(status.hashtags)) + ", " + str(len(status.urls))
+    #waitFor()
+   
+    getTweets(2100, 2400)
+      
   finally:
     print "------------------------------------------------------"
     print "main() finished at " + str(datetime.now())
