@@ -12,34 +12,12 @@ global me
 def setup_key():
   global api, me
   api = twitter.Api(consumer_key='cJIc5ji9EMQDX3XT1fqZg',
-    consumer_secret='KOZhtQAfjw8D2pDTTCWRLbQYB4hVJ0dvBoMSWPmAY',
-    access_token_key='557374910-1Y5JqEllS2tR5nFnBMfdJy6XFodY9bH7W8n6nWgI',
-    access_token_secret='TgSZBpkDXFFS5DTjn3tcVuTSpfxruefF6NaEm68k9DY')
+    consumer_secret='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+    access_token_key='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
+    access_token_secret='zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
 
   me = api.VerifyCredentials()
   print me
-
-def change_key():
-  global api, me
-  api = twitter.Api(consumer_key='7noNko5fpodyWthwxTpEzA',
-    consumer_secret='I7p3NKWpyq83yZzJy62GFQcbK9SwBSjlFQXaV1vn9Qk',
-    access_token_key='557374910-aHNDrTJH97rmvpg0SIRvAxeP0yKnfGOb7GZdfr13',
-    access_token_secret='dSdwle7MYRDK31BdLmVKSWbCCzGNBtWN5NT7xpG7E')
-  
-  me = api.VerifyCredentials()
-  print me
-  print "OAuth key has been changed successfully."
-  
-def new_key():
-  global api, me
-  api = twitter.Api(consumer_key='eqNmKOPLWiZwJDOPnA9g',
-    consumer_secret='PnRzgbtlKWBhWFhb3hRRrWcJsO0lnIxSuugsZ7Ui0',
-    access_token_key='557374910-lWbRRKnIAGcez0diHX7KNRfGDU12grJLHcwI1evk',
-    access_token_secret='OL7DIZsZYoZpiRuGZocScN0u5IMHj0N5lh5vnn3U')
-  
-  me = api.VerifyCredentials()
-  print me
-  print "OAuth key has been changed successfully."
 
 def get_friends():
   print "============================================="
