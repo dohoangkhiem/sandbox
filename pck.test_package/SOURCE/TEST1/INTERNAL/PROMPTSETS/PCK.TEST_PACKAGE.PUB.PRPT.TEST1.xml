@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-15" standalone="no"?><uc-export clientvers="8.0.0">
+<PRPT client="0099" name="PCK.TEST_PACKAGE.PUB.PRPT.TEST1" system="AE11SARA">
+<HEADER state="1">
+<Title/>
+
+
+<LastUsed/>
+<ArchiveKey1/>
+<ArchiveKey2/>
+<OH_SubType/>
+</HEADER>
+<PROMPTDESIGNER state="1">
+<DESIGNER/>
+</PROMPTDESIGNER>
+<PROMPTSETXUI state="1">
+<XUIEDITOR><![CDATA[<dialog id="PRPTS" width="0" height="0" left="" top="" icon="PRPT"><readpanel id="PRPTBOX" text="PCK.TEST_PACKAGE.PUB.PRPT.TEST1" fill="b" scroll="v" nl="1"><properties><entry name="text">PCK.TEST_PACKAGE.PUB.PRPT.TEST1</entry><entry name="modifiable">0</entry></properties></readpanel></dialog>]]></XUIEDITOR>
+</PROMPTSETXUI>
+<PROMPTSETDATA state="1">
+<DATAEDITOR><![CDATA[<PRPTS idnr="0001022140" client="0099" system="AE11SARA" ontop="1" src="oh"><PRPTBOX/></PRPTS>]]></DATAEDITOR>
+</PROMPTSETDATA>
+<DOCU_Docu state="1" type="text">
+<DOC/>
+</DOCU_Docu>
+</PRPT>
+</uc-export>
