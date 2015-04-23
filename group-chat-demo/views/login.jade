@@ -1,0 +1,18 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    title Login to Group Chat Demo
+    meta(name='viewport', content='initial-scale=1.0, width=device-width, \
+      height=device-height, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no')
+  body
+    form(action="/login", method="post")
+      div
+        label Username:
+        input(type="text", name="username")
+      div
+        label Password:
+        input(type="password", name="password")
+      div
+        input(type="submit", value="Log In")
+

@@ -1,0 +1,45 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    title Group Chat Demo
+    meta(name='viewport', content='initial-scale=1.0, width=device-width, \
+      height=device-height, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    link(rel='stylesheet', href='//cdn.jsdelivr.net/normalize/3.0.1/normalize.min.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')    
+    link(rel='stylesheet', href='/stylesheets/jquery-ui.min.css')
+  body
+    h1 Group Chat Demo
+    div#chat-panel
+      button(type="button") New room  
+      form#chat-form
+        input(id='msg', autocomplete='off', autofocus)
+        button(type='submit') Send
+      
+    div#chat-tabs-container
+      ul#chat-tabs
+        li
+          a(href='#global-room') Global Room
+      div#global-room
+        ul#messages
+          - for(var i=0,ln=messages.length;i<ln;i++)      
+            li
+              .header.clearfix
+                .who= messages[i].nickname
+                .when= new Date(messages[i].when).toString().substr(0, 24)
+              .msg= messages[i].msg
+
+
+    form(action="/login", method="post")
+      div
+        label Username:
+        input(type="text", name="username")
+      div
+        label Password:
+        input(type="password", name="password")
+      div
+        input(type="submit", value="Log In")
+    script(src='/javascripts/jquery.min.js')
+    script(src='/javascripts/jquery-ui.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/javascripts/client.js')
