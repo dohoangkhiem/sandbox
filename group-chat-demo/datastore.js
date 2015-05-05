@@ -7,32 +7,45 @@ module.exports = Datastore;
 
 Datastore.prototype.createUser = function(username, email, displayName, password, callback) {
   var redisClient = this.redisClient;
-  redisClient.incr('user_id', function(err, id) {
-    if (err) {
-      if (callback) callback(err, id);
+
+  redisClient.hget('users', username, function(error, res) {
+    if (error) {
+      if (callback) callback(error, null);
       return;
     }
 
-    var userObj = {
-      'id': id,
-      'username': username,
-      'email': email,
-      'displayName': displayName,
-      'password': password
-    };
-    var key = 'user:' + id;
-    redisClient.set(key, JSON.stringify(userObj), function(err1, res) {
-      if (err1) {
-        if (callback) callback(err1, res);
+    if (res) {
+      if (callback) callback('User \'' + username + '\' existed already', null)
+      return;
+    }
+
+    redisClient.incr('user_id', function(err, id) {
+      if (err) {
+        if (callback) callback(err, id);
         return;
       }
 
-      // add to users hash
-      redisClient.hset('users', username, id, function(err2, res) {
-        if (callback) callback(err2, id);  
+      var userObj = {
+        'id': id,
+        'username': username,
+        'email': email,
+        'displayName': displayName,
+        'password': password
+      };
+      var key = 'user:' + id;
+      redisClient.set(key, JSON.stringify(userObj), function(err1, res) {
+        if (err1) {
+          if (callback) callback(err1, res);
+          return;
+        }
+
+        // add to users hash
+        redisClient.hset('users', username, id, function(err2, res) {
+          if (callback) callback(err2, id);  
+        });
+        
+        
       });
-      
-      
     });
   });
 }
@@ -78,7 +91,7 @@ Datastore.prototype.getUserByName = function(username, callback) {
   })
 }
 
-Datastore.prototype.createGroup = function(title, creatorId, createUser, createDate, callback) {
+Datastore.prototype.createGroup = function(title, createId, createUser, createDate, callback) {
   var redisClient = this.redisClient;
   redisClient.incr('group_id', function(err, id) {
     if (err) {
@@ -90,24 +103,28 @@ Datastore.prototype.createGroup = function(title, creatorId, createUser, createD
       'id': id,
       'title': title,
       'creatorId': createId,
-      'creatorUser': creatorUser,
+      'creatorUser': createUser,
       'creatorDate': new Date().getTime()
     }
 
     var key = 'group:' + id;
-    redisClient.set(key, JSON.stringify(groupObj), function(err2, res) {
-      if (err2) {
-        if (callback) callback(err2, res);
+    redisClient.set(key, JSON.stringify(groupObj), function(err1, res) {
+      if (err1) {
+        if (callback) callback(err1, res);
         return;
       }
 
-      if (callback) callback(err2, key);
+      // add to groups hash
+      redisClient.hset('groups', id, title, function(err2, res) {
+        if (callback) callback(err2, id);  
+      });
     });
   });
   
 }
 
 Datastore.prototype.getGroup = function(groupId, callback) {
+  var redisClient = this.redisClient;
   redisClient.get('group:' + groupId, function(err, value) {
     if (err) {
       if (callback) callback(err, value);
@@ -130,13 +147,44 @@ Datastore.prototype.addMessage = function(groupId, messageObj, callback) {
   });
 }
 
-Datastore.prototype.getMessages = function(groupId, maxNumber, callback) {
-  this.redisClient.zrevrange('group:' + groupId + ':messages', 0, maxNumber - 1, false, function(err, res) {
+Datastore.prototype.getGroupMessages = function(groupId, maxNumber, callback) {
+  this.redisClient.zrevrange('group:' + groupId + ':messages', 0, maxNumber - 1, function(err, res) {
     if (err) {
       if (callback) callback(err, res);
       return;
     }
 
-    if (callback) callback(err, JSON.parse(res));
+    if (callback) { 
+      var results = [];
+      for (idx in res) {
+        results.push(JSON.parse(res[idx]));
+      }
+
+      callback(err, results);
+    }
   });
 }
+
+Datastore.prototype.getAllGroups = function(callback) {
+  var redisClient = this.redisClient;
+  redisClient.hgetall('groups', function(err, res) {
+    if (err) {
+      if (callback) callback(err, res);
+      return;
+    }
+
+    if (callback) callback(err, res);
+  });
+}
+
+Datastore.prototype.getAllUsers = function(callback) {
+  this.redisClient.hgetall('users', function(err, res) {
+    if (err) {
+      if (callback) callback(err, res);
+      return;
+    }
+
+    if (callback) callback(err, res);
+  });
+}
+

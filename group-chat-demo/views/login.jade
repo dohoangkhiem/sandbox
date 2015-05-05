@@ -1,18 +1,19 @@
 doctype html
-html(lang='en')
+html
   head
-    meta(charset='utf-8')
-    title Login to Group Chat Demo
-    meta(name='viewport', content='initial-scale=1.0, width=device-width, \
-      height=device-height, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    title Passport Sample
+    style.
+      .error {
+        color: red;
+      }
   body
-    form(action="/login", method="post")
+    form(action="" method="post")
       div
-        label Username:
-        input(type="text", name="username")
+        label(for="username") Username:
+        input(type="text" name="username" id="username" autofocus)
       div
-        label Password:
-        input(type="password", name="password")
+        label(for="password") Password:
+        input(type="password" id="password" name="password")
+      span.error #{error}
       div
-        input(type="submit", value="Log In")
-
+        input(type="submit" value="Log In")

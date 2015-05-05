@@ -1,0 +1,45 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    title Group Chat Demo
+    meta(name='viewport', content='initial-scale=1.0, width=device-width, \
+      height=device-height, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no')
+    link(rel='stylesheet', href='/stylesheets/simple_client_style.css')    
+    link(rel='stylesheet', href='/stylesheets/jquery-ui.min.css')
+    script.
+      var user = {
+        'id': '#{user.id}',
+        'username': '#{user.username}'
+      }
+
+  body
+    #main-banner
+      h1 Simple Group Chat
+      .top-right.welcome-msg
+        span Hello <strong>#{user.username}</strong>&nbsp;
+        a(href="/logout") Log out
+    .clear
+    div#main-container
+        #group-list-tabs
+          ul
+            - for(var i=0,ln=groups.length;i<ln;i++)      
+              li(group-id=groups[i].id, group-title=groups[i].title)
+                .header.clearfix
+                  a(href="#group-#{groups[i].id}") #{groups[i].title}
+          .main-panel
+            - for(var i=0,ln=groups.length;i<ln;i++)
+              .group-panel
+                div(id='group-#{groups[i].id}').messages-panel
+                  ul.chat-messages
+                    li No message
+            form#chat-form
+              textarea(id='msg-text', autocomplete='off', autofocus)
+              button(id='msg-button', type='submit') Send
+
+
+    script(src='/javascripts/jquery.min.js')
+    script(src='/javascripts/jquery-ui.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/javascripts/simple-client.js')
+

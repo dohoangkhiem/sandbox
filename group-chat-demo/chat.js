@@ -48,12 +48,21 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
 
     // user logged in and send info to server
     socket.on('login', function(user) {
+      console.log('User ' + user.username + ' has just logged in');
       socket.userId = user.id;
       socket.username = user.username;
       socketHash[user.id] = socket;
+
+      // atm: add all to all groups
+      socket.join(1);
+      socket.join(2);
+      socket.join(3);
+      socket.join(4);
+      socket.join(5);
+
     });
 
-    // when client sends 'load-group' event to start a group, this is after user successfully create a group
+    // when client sends 'load-group' event to start a group, this is after user successfully creates a group
     socket.on('load-group', function(groupData) {
       var groupId = groupData.groupId;
       socket.join(groupId);
@@ -61,6 +70,7 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
       if (members.length > 0) {
         for (idx in members) {
           var mSocket = socketHash[members[idx]];
+          if (!mSocket) continue;
           mSocket.join(groupId);
           mSocket.emit('joined-group', { 
             'groupId': groupId, 
@@ -72,11 +82,18 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
     });
 
     socket.on('message', function(msgData) {
+      
+      console.log('Got message ' + JSON.stringify(msgData));
+
       var groupId = msgData.groupId;
 
+      console.log('From socket internal: id = ' + socket.userId + ', user = ' + socket.username);
+
       var msgObj = {
+        'groupId': msgData.groupId,
         'msg': msgData.msg,
-        'fromId': msgData.fromId,
+        'fromId': socket.userId,
+        'fromUser': socket.username,
         'timestamp': msgData.timestamp
       }
 
@@ -85,7 +102,7 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
         if (err) {
           socket.emit('send-msg-error', err);
         } else {
-          redisClient.publish('messages', JSON.stringify(msgData));
+          redisClient.publish('messages', JSON.stringify(msgObj));
         }
       });
 
@@ -95,8 +112,9 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
 
 
   redisSubscriber.on('message', function(channel, msgData) {
+    console.log('Subscriber got message from channel = ' + channel + ', msg = ' + msgData);
     if (channel == 'messages') {
-      console.log('Subscriber got message ' + msgData);
+      
       //io.emit('msg', JSON.parse(message));
       var msgObj = JSON.parse(msgData);
       io.to(msgObj.groupId).emit('message', msgObj);

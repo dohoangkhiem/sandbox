@@ -33,6 +33,7 @@ module.exports = function(router, datastore) {
       });
     });
 
+    
   router.route('/user')
     .put(function(req, res) {
       if (!req.body){
@@ -52,6 +53,21 @@ module.exports = function(router, datastore) {
 
         // if not create new user  
     });
+
+  // get group messages
+  router.route('/messages/:group_id')
+    .get(function(req, res) {
+      var groupId = req.params.group_id;
+      console.log('Getting messages from group id = ' + groupId);
+      datastore.getGroupMessages(groupId, 25, function(err, reply) {
+        if (err) res.json({ error: err });
+        else {
+          res.json(reply);
+        }
+      });
+    });
+
+
 
 }
 
