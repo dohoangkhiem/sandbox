@@ -1,13 +1,15 @@
 var $chatTabs,
   $chatForm,
   $sendMsg,
-  $msgText;
+  $msgText,
+  $onlineCountSpan;
 
 function initUI() {
   $chatForm = $('#chat-form');
   $sendMsg = $('#msg-button', $chatForm);
   $msgText = $('#msg-text', $chatForm);
   $chatTabs = $('#group-list-tabs').tabs().addClass("ui-tabs-vertical ui-helper-clearfix");
+  $onlineCountSpan = $('.top-right span.online-users');
   $('ul > li', $chatTabs).removeClass("ui-corner-top" ).addClass( "ui-corner-left" ); 
 }
 
@@ -78,7 +80,12 @@ $(function() {
   socket.on('message', function(msgObj) {
     console.log('Got message ' + JSON.stringify(msgObj));
     appendMessage(msgObj.groupId, msgObj);
-  })
+  });
+
+  socket.on('online-counter', function(onlineCount) {
+    console.log('Online counter: ' + onlineCount);
+    $onlineCountSpan.text('Users online: ' + onlineCount);
+  });
 
   function sendMessage(groupId, msg) {
     socket.emit('message', {

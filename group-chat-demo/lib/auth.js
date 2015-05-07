@@ -1,21 +1,30 @@
-module.exports = function(app, datastore) {
-  var passport = require('passport'),
+var passport = require('passport'),
     LocalStrategy = require('passport-local').Strategy,
     BasicStrategy = require('passport-http').BasicStrategy,
     bodyParser = require('body-parser'),
     cookieParser = require('cookie-parser'),
     session = require('express-session'),
+    RedisStore = require('connect-redis')(session),
     flash = require('connect-flash');
 
+module.exports = function(app, datastore, redisClient) {
+  
   //app.use(express.static('public'));
   app.use(cookieParser());
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
-  app.use(session({ secret: 'keyboard cat', saveUninitialized: true, resave: true, cookie: { maxAge: 600000 } }));
+  
+  app.use(session({ 
+    store: new RedisStore({ client: redisClient }),
+    secret: 'keyboard cat', 
+    saveUninitialized: true, 
+    resave: true, cookie: 
+    { maxAge: 600000 } 
+  }));
+
   app.use(passport.initialize());
   app.use(passport.session());
   app.use(flash());
-
 
   passport.use('local', new LocalStrategy(
     function(username, password, done) {
@@ -56,15 +65,17 @@ module.exports = function(app, datastore) {
           console.log('Error: Incorrect username');
           return done(null, false, { message: 'Incorrect username' });
         }
+
         if (user.password != password) {
           console.log('Error: Incorrect password');
           return done(null, false, { message: 'Incorrect password' });
         }
 
-        console.log('Authentication successful');
+        console.log('Basic authentication successful');
         return done(null, user);
       });
   }));
+
 
   passport.serializeUser(function(user, done) {
     done(null, user.id);
@@ -78,9 +89,9 @@ module.exports = function(app, datastore) {
   });
 
   // protect REST APIs
-  app.get('/rest/*', passport.authenticate('basic', { session: false }), function(req, res) {
+  /*app.get(['/rest/*'], passport.authenticate('basic', { session: false }), function(req, res) {
     console.log('Rest request passes');
-  });
+  });*/
 
   // ROUTES
   app.post(['/login', '/login*'], function(req, res, next) {
@@ -136,20 +147,28 @@ module.exports = function(app, datastore) {
   app.get('/chat', function(req, res, next) {
     if (req.isAuthenticated()) {
       // get all groups
-      datastore.getAllGroups(function(err, reply) {
+      datastore.getUserGroups(req.user.id, function(err, groupIds) {
         if (err) {
           return next(err);
         }
 
-        var groups = [];
-        for (var gr in reply) groups.push({ 'id': gr, 'title': reply[gr] });
-
-        res.render('simple_client', { 'groups': groups, 'user': req.user });  
-
+        groupIds.splice(0, 0, 1);
+        // hack here!
+        
+        datastore.getMultipleGroups(groupIds, function(err2, groupList) {
+          res.render('simple_client', { 'groups': groupList, 'user': req.user });    
+        });
       });
     } else {
       res.redirect('/login?returnUrl=/chat');
     }
   });
+
+  module.exports.isAuthenticated = function(req, res, next) {
+    if (req.isAuthenticated()) next();
+    else passport.authenticate('basic', { session: false })(req, res, next);
+  }
+
+  module.exports.basicAuth = passport.authenticate('basic', { session: false });
   
 }
