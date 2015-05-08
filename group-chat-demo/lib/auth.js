@@ -7,6 +7,8 @@ var passport = require('passport'),
     RedisStore = require('connect-redis')(session),
     flash = require('connect-flash');
 
+var config = require('./config.js');
+
 module.exports = function(app, datastore, redisClient) {
   
   //app.use(express.static('public'));
@@ -16,7 +18,7 @@ module.exports = function(app, datastore, redisClient) {
   
   app.use(session({ 
     store: new RedisStore({ client: redisClient }),
-    secret: 'keyboard cat', 
+    secret: config.sessionCookieSecret, 
     saveUninitialized: true, 
     resave: true, cookie: 
     { maxAge: 600000 } 
@@ -47,6 +49,7 @@ module.exports = function(app, datastore, redisClient) {
         }
 
         console.log('Authentication successful');
+
         return done(null, user);
       });
     }
@@ -95,8 +98,7 @@ module.exports = function(app, datastore, redisClient) {
 
   // ROUTES
   app.post(['/login', '/login*'], function(req, res, next) {
-    console.log('loggin in ...');
-    var returnUrl = '/welcome';
+    var returnUrl = '/chat';
     if (req.query.returnUrl) {
       returnUrl = req.query.returnUrl;
     }
@@ -107,24 +109,24 @@ module.exports = function(app, datastore, redisClient) {
 
   app.get('/logout', function(req, res) {
     req.logout();
-    res.redirect('/');
+    res.redirect('/login');
   });
 
   app.get('/', function(req, res) {
     if (req.isAuthenticated()) {
-      res.redirect('/welcome');
+      res.redirect('/chat');
     } else {
       res.redirect('/login');
     }
   })
 
-  app.get('/private/*', function(req, res) {
+  /*app.get('/private/*', function(req, res) {
     if (req.isAuthenticated()) {
       res.render('private');
     } else {
       res.redirect('/login?returnUrl=' + req.originalUrl);
     }
-  });
+  });*/
 
   app.get('/login', function(req, res) {
     if (req.isAuthenticated()) {
@@ -136,13 +138,13 @@ module.exports = function(app, datastore, redisClient) {
     }
   });
 
-  app.get('/welcome', function(req, res) {
+  /*app.get('/welcome', function(req, res) {
     if (req.isAuthenticated()) {
       res.render('welcome', { 'user': req.user });
     } else {
       res.redirect('/login');
     }
-  })
+  })*/
 
   app.get('/chat', function(req, res, next) {
     if (req.isAuthenticated()) {
@@ -152,8 +154,8 @@ module.exports = function(app, datastore, redisClient) {
           return next(err);
         }
 
-        groupIds.splice(0, 0, 1);
         // hack here!
+        groupIds.splice(0, 0, 1);
         
         datastore.getMultipleGroups(groupIds, function(err2, groupList) {
           res.render('simple_client', { 'groups': groupList, 'user': req.user });    

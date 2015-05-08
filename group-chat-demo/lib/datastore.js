@@ -7,7 +7,6 @@ function Datastore(redisClient) {
 // export class as a module for public use from outside via require()
 module.exports = Datastore;
 
-
 Datastore.prototype.createUser = function(username, email, displayName, password, callback) {
   var redisClient = this.redisClient;
 
@@ -68,8 +67,7 @@ Datastore.prototype.getUser = function(userId, callback) {
 
     if (callback) {
       var valueObj = JSON.parse(value);
-      var returnedObj = models.User.createUser(valueObj);
-      callback(err, returnedObj);
+      callback(err, models.User.createUser(valueObj));
     } 
   });
 }
@@ -80,8 +78,8 @@ Datastore.prototype.getMultipleUsers = function(userIds, callback) {
   for (idx in userIds) {
     multi.get('user:' + userIds[idx], function(err, value) {
       if (!err && value) {
-        var valueObj = JSON.parse(value);
-        results.push(models.User.createUser(valueObj));
+        var returnedObj = models.User.createUser(JSON.parse(value));
+        results.push(returnedObj);
       }
     })
   }
@@ -111,28 +109,29 @@ Datastore.prototype.getUserByName = function(username, callback) {
         if (callback) callback(err1, userValue);
         return;
       }
-
-      var valueObj = JSON.parse(userValue);
-
-      if (callback) callback(err1, models.User.createUser(valueObj));
+ 
+      if (callback) callback(err1, models.User.createUser(JSON.parse(userValue)));
     })
   })
 }
 
 Datastore.prototype.createGroup = function(title, createId, createUser, createDate, callback) {
   var redisClient = this.redisClient;
+  var multi = redisClient.multi();
   redisClient.incr('group_id', function(err, id) {
     if (err) {
       if (callback) callback(err, id);
       return;
     }
 
+    var timestamp = new Date().getTime();
+
     var groupObj = models.Group.createGroup({
       'id': id,
       'title': title,
       'creatorId': createId,
       'creatorUser': createUser,
-      'creatorDate': new Date().getTime()
+      'creatorDate': timestamp
     });
 
     var key = 'group:' + id;
@@ -143,8 +142,18 @@ Datastore.prototype.createGroup = function(title, createId, createUser, createDa
       }
 
       // add to groups hash
-      redisClient.hset('groups', id, title, function(err2, res) {
-        if (callback) callback(err2, id);  
+      multi.hset('groups', id, title);
+      // init group members
+      multi.zadd('group:' + id + ':members', timestamp, createId);
+      multi.zadd('user:' + createId + ':groups', timestamp, id);
+
+      multi.exec(function(err2, reply) {
+        if (err2) {
+          if (callback) callback(err2, id);
+          return;
+        }
+
+        if (callback) callback(null, id);
       });
     });
   }); 
@@ -186,24 +195,27 @@ Datastore.prototype.getMultipleGroups = function(groupIds, callback) {
 }
 
 Datastore.prototype.addUserToGroup = function(userId, groupId, callback) {
+  var self = this;
   var multi = this.redisClient.multi();
-  this.getUser(userId, function(err, userObj) {
+  self.getUser(userId, function(err, userObj) {
     if (err) {
       if (callback) callback(err, userObj);
       return;
     }
 
-    if (userObj == null || userObj == undefined) {
-      if (callback) callback('Error: user id ' + userId + ' does not exist', null);
-      return;
-    }
+    self.getGroup(groupId, function(err2, groupObj) {
+      if (err2) {
+        if (callback) callback(err2, groupObj);
+        return;
+      }
 
-    var timestamp = new Date().getTime();
-    multi.zadd('group:' + groupId + ':members', timestamp, userId);
-    multi.zadd('user:' + userId + ':groups', timestamp, groupId);
+      var timestamp = new Date().getTime();
+      multi.zadd('group:' + groupId + ':members', timestamp, userId);
+      multi.zadd('user:' + userId + ':groups', timestamp, groupId);
 
-    multi.exec(function(err, reply) {
-      if (callback) callback(err, reply);
+      multi.exec(function(err3, reply) {
+        if (callback) callback(err3, reply);
+      });
     });
   });
   
@@ -219,8 +231,9 @@ Datastore.prototype.getGroupMembers = function(groupId, callback) {
 }
 
 Datastore.prototype.removeUserFromGroup = function(userId, groupId, callback) {
+  var self = this;
   var multi = this.redisClient.multi();
-  this.getUser(userId, function(err, userObj) {
+  self.getUser(userId, function(err, userObj) {
     if (err) {
       if (callback) callback(err, userObj);
       return;
@@ -231,12 +244,18 @@ Datastore.prototype.removeUserFromGroup = function(userId, groupId, callback) {
       return;
     }
 
-    multi.zrem('group:' + groupId + ':members', userId);
+    self.getGroup(groupId, function(err2, groupObj) {
+      if (err2) {
+        if (callback) callback(err2, groupObj);
+        return;
+      }
 
-    multi.zrem('user:' + userId + ':groups', groupId);
+      multi.zrem('group:' + groupId + ':members', userId);
+      multi.zrem('user:' + userId + ':groups', groupId);
 
-    multi.exec(function(err, reply) {
-      if (callback) callback(err, reply);
+      multi.exec(function(err3, reply) {
+        if (callback) callback(err3, reply);
+      });
     });
   });
 

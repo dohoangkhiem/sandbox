@@ -1,6 +1,6 @@
 var test = require('unit.js');
 
-var models = require('../models.js');
+var models = require('../lib/models.js');
 
 var user1 = new models.User(1, 'khiem', 'khiem@gmail.com', 'khiem');
 

@@ -32,9 +32,6 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
       if (!(user.id in socketHash)) socketHash[user.id] = [];
       socketHash[user.id].push(socket);
 
-      console.log(socketHash, Object.keys(socketHash).length);
-      console.log('Number of online user = ' + Object.keys(socketHash).length);
-
       // find user's group
       datastore.getUserGroups(user.id, function(err, groupIds) {
         if (groupIds) {
@@ -52,47 +49,52 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
     // when client sends 'load-group' event to start a group, this is after user successfully creates a group
     socket.on('load-group', function(groupId) {
 
+      console.log('User ' + socket.userId + ' wants to load group ' + groupId);
+
       datastore.getGroup(groupId, function(err, groupObj) {
         if (err) {
           socket.emit('load-group-error', err);
           return;
+        }
 
-          if (!groupObj) {
-            socket.emit('load-group-error', 'Group with id ' + groupId + ' not found');
+        console.log('get group', groupObj);
+
+        if (!groupObj) {
+          socket.emit('load-group-error', 'Group with id ' + groupId + ' not found');
+          return;
+        }
+
+        console.log(socket.userId, groupObj.creatorId, typeof(socket.userId), typeof(groupObj.creatorId));
+        if (socket.userId != groupObj.creatorId) {
+          socket.emit('load-group-error', 'You are not owner of this group ');
+          return; 
+        }
+
+        console.log('Initializing group ' + groupId + ', title = ' + groupObj.title);
+
+        socket.join(groupId);
+
+        datastore.getGroupMembers(groupId, function(err2, members) {
+          if (err2) {
+            socket.emit('load-group-error', err2);
             return;
           }
 
-          console.log('Initializing group ' + groupId + ', title = ' + title);
+          for (var idx in members) {
+            var mSockets = socketHash[members[idx]];
+            if (!mSockets || mSockets.length == 0) continue;
+            for (var idx1 in mSockets) mSockets[idx1].join(groupId);
 
-          socket.join(groupId);
-
-          datastore.getGroupMembers(groupId, function(err2, members) {
-            if (err2) {
-              socket.emit('load-group-error', err2);
-              return;
-            }
-
-            if (members && members.length > 0) {
-              for (var idx in members) {
-                var mSockets = socketHash[members[idx]];
-                if (!mSockets || mSockets.length == 0) continue;
-                for (var idx1 in mSockets) mSockets[idx1].join(groupId);
-
-                io.to(groupId).emit('group-ready', groupObj);
-                  
-                /*mSocket.emit('joined-group', { 
-                  'groupId': groupId, 
-                  'groupTitle': groupData.groupTitle, 
-                  'owner': { 'id': socket.userId, 'username': socket.username }
-                });*/ 
-              }
-            } else {
-              socket.emit('group-ready', groupObj);
-            }
-
-          });
-        }
-      });
+            io.to(groupId).emit('group-ready', groupObj);
+                
+            /*mSocket.emit('joined-group', { 
+              'groupId': groupId, 
+              'groupTitle': groupData.groupTitle, 
+              'owner': { 'id': socket.userId, 'username': socket.username }
+            });*/ 
+          }
+        });
+      }); 
     });
 
     // when an user wants to join a group
@@ -110,14 +112,61 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
         }
 
         socket.join(groupId);
-        io.to(groupId).emit('joined-group', { userId: socket.userId, username: socket.username });
+        io.to(groupId).emit('joined-group', { userId: socket.userId, username: socket.username, groupId: groupId });
       }); 
     });
 
+    // an user add his friends to group
+    socket.on('add-to-group', function(groupId, userIds) {
 
+      if (!groupId) {
+        socket.emit('add-to-group-error', 'Unknown group id');
+        return;
+      }
+
+      if (!userIds || userIds.length <= 0) {
+        socket.emit('add-to-group-error', 'Empty list of user ids to add');
+        return;
+      }
+
+      // check if user is addded to group
+      datastore.isMemberOf(socket.userId, groupId, function(err, reply) {
+        if (err) {
+          socket.emit('add-to-group-error', err);
+          return;
+        }
+
+        if (reply < 0) {
+          socket.emit('add-to-group-error', 'User id ' + socket.userId + ' is not a member of group id ' + groupId);
+          return;
+        }
+
+        datastore.getMultipleUsers(userIds, function(err1, userList) {
+          if (err1) {
+            socket.emit('add-to-group-error', err1);
+            return;
+          }
+
+          for (idx in userList) {
+            // find socket for user with id userIds[idx]
+            var mSockets = socketHash[userList[idx].id];
+            if (mSockets && mSockets.length > 0) {
+              for (var idx1 in mSockets) mSockets[idx1].join(groupId);
+            }
+            
+            io.to(groupId).emit('joined-group', { 
+              userId: userList[idx].id, 
+              username: userList[idx].username, 
+              groupId: groupId, 
+              addedBy: { userId: socket.userId, username: socket.username }
+            });
+          }  
+        });
+      }); 
+    });
 
     // got message from client socket
-    socket.on('message', function(msgData) {
+    socket.on('chat-message', function(msgData) {
       
       console.log('Got message ' + JSON.stringify(msgData));
 
@@ -140,7 +189,7 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
         'msg': msgData.msg,
         'fromId': socket.userId,
         'fromUser': socket.username,
-        'timestamp': msgData.timestamp
+        'timestamp': new Date().getTime()
       });
 
       // store message then publish
@@ -149,16 +198,25 @@ module.exports = function(io, redisClient, redisSubscriber, datastore) {
           socket.emit('send-msg-error', err);
         } else {
           //redisClient.publish('messages', JSON.stringify(msgObj));
-          io.to(groupId).emit('message', msgObj);
+          io.to(groupId).emit('chat-message', msgObj);
         }
       });
 
       //socket.broadcast.to(groupId).emit('message', { msg: message, user: data.user, img: data.img});
     });
 
+    // user leaves group
+    socket.on('leave', function(groupId) {
+      var userId = socket.userId;
+      for (idx in socketHash[userId]) {
+        socketHash[userId][idx].leave(groupId);
+      }
+      io.to(groupId).emit('user-left-group', socket.userId, socket.username);
+    });
+
+    // a socket disconnects
     socket.on('disconnect', function() {
       //socket.broadcast.emit('notice', socket.nickname + ' has left the chat.');
-      console.log(socketHash);
       if (socket.userId in socketHash) {
         var disconnected = socketHash[socket.userId].splice(socketHash[socket.userId].indexOf(socket), 1);
         disconnected = null;

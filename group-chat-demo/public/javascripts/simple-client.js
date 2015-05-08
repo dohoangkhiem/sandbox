@@ -77,7 +77,7 @@ $(function() {
     console.log('Send message error: ' + err);
   });
 
-  socket.on('message', function(msgObj) {
+  socket.on('chat-message', function(msgObj) {
     console.log('Got message ' + JSON.stringify(msgObj));
     appendMessage(msgObj.groupId, msgObj);
   });
@@ -88,11 +88,10 @@ $(function() {
   });
 
   function sendMessage(groupId, msg) {
-    socket.emit('message', {
+    socket.emit('chat-message', {
       'groupId': groupId,
       'msg': msg,
       'fromId': user.id,
-      'timestamp': new Date().getTime()
     });
   }
 

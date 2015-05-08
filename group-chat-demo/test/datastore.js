@@ -1,7 +1,7 @@
 var redis = require('redis-mock');
 var test = require('unit.js');
 
-var Datastore = require('../datastore.js');
+var Datastore = require('../lib/datastore.js');
 var datastore = new Datastore(redis.createClient());
 
 var userCallback = function(err, res) {

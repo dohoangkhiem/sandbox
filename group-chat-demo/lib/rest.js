@@ -20,49 +20,6 @@ module.exports = function(router, datastore, auth) {
 
     });
 
-  router.route('/group/:groupId')
-    .get(auth.isAuthenticated, function(req, res) {
-      var groupId = req.params.groupId;
-      datastore.getGroup(groupId, function(err, reply) {
-        if (err) res.json( { error: err } );
-        else res.json(reply);
-      });
-    });
-
-
-  router.route('/group/:groupId/members')
-    .get(auth.isAuthenticated, function(req, res) {
-      var groupId = req.params.groupId;
-      var userId = req.user.id;
-      datastore.isMemberOf(userId, groupId, function(err, reply) {
-        if (err) { 
-          res.json({ error: err });
-          return;
-        }
-
-        if (reply < 0) {
-          res.json({ error: 'User ' + req.user.username + ' is not a member of group with id ' + groupId });
-          return;
-        }
-
-        console.log('Getting members from group id = ' + groupId);
-        
-        datastore.getGroupMembers(groupId, function(err2, reply2) {
-          if (err2) {
-            res.json({ error: err2 });
-          } else {
-            var memIds = [];
-            for (idx in reply2) memIds.push(reply2[idx]);
-            datastore.getMultipleUsers(memIds, function(err3, userList) {
-              if (err3) res.json({ error: err3 });
-              else res.json(userList);
-            });
-          }
-        });
-
-      });
-    });
-    
   router.route('/user')
     .post(function(req, res) {
       if (!req.body){
@@ -104,10 +61,201 @@ module.exports = function(router, datastore, auth) {
       });
     });
 
-  // get group messages
-  router.route('/messages/:group_id')
+  /**
+   * Group resources
+   */
+
+  // get information about group
+  router.route('/group/:groupId')
     .get(auth.isAuthenticated, function(req, res) {
-      var groupId = req.params.group_id;
+      var groupId = req.params.groupId;
+      datastore.getGroup(groupId, function(err, reply) {
+        if (err) res.json( { error: err } );
+        else res.json(reply);
+      });
+    });
+
+
+  // get members of given group
+  router.route('/group/:groupId/members')
+    .get(auth.isAuthenticated, function(req, res) {
+      var groupId = req.params.groupId;
+      var userId = req.user.id;
+      datastore.isMemberOf(userId, groupId, function(err, reply) {
+        if (err) { 
+          res.json({ error: err });
+          return;
+        }
+
+        if (reply < 0) {
+          res.json({ error: 'User ' + req.user.username + ' is not a member of group with id ' + groupId });
+          return;
+        }
+
+        console.log('Getting members from group id = ' + groupId);
+        
+        datastore.getGroupMembers(groupId, function(err2, reply2) {
+          if (err2) {
+            res.json({ error: err2 });
+          } else {
+            var memIds = [];
+            for (idx in reply2) memIds.push(reply2[idx]);
+            datastore.getMultipleUsers(memIds, function(err3, userList) {
+              if (err3) res.json({ error: err3 });
+              else res.json(userList);
+            });
+          }
+        });
+
+      });
+    });
+    
+  // create new group
+  router.route('/group')
+    .post(auth.isAuthenticated, function(req, res) {
+      if (!req.body){
+        res.json({ error: 'Null payload' });
+        return;
+      }
+
+      var userId = req.user.id;
+      var username = req.user.username;
+
+      var title = req.body.title;
+      var memberIds = req.body.members;
+
+      if (isBlank(title)) {
+        res.json({ error: 'Group title must be provided' });
+        return;
+      }
+
+      if (!memberIds || memberIds.length <= 0) {
+        res.json({ error: 'Group members must not be empty' });
+        return; 
+      }
+
+      datastore.createGroup(title, userId, username, new Date().getTime(), function(err, groupId) {
+        if (err) {
+          res.json({ error: err });
+          return;
+        }
+
+        var count = 0;
+        var warning = [];
+        for (idx in memberIds) {
+          datastore.addUserToGroup(memberIds[idx], groupId, function(err2, reply2) {
+            if (err2) {
+              warning.push(err2);
+            }
+            count++;
+
+            if (count == memberIds.length) {
+              if (warning.length > 0) {
+                res.json({ groupId: groupId, warning: warning.join('\n'), message: 'OK with warning' });
+              } else {
+                res.json({ groupId: groupId, message: 'OK' });
+              }
+            }
+          });
+        }
+      });
+
+    });
+
+  // join a group
+  router.route('/group/:groupId/join')
+    .post(auth.isAuthenticated, function(req, res) {
+      var groupId = req.params.groupId;
+      var userId = req.user.id;
+      var username = req.user.username;
+
+      datastore.addUserToGroup(userId, groupId, function(err, reply) {
+        if (err) {
+          res.json({ error: err });
+          return;
+        }
+
+        res.json({ message: 'OK' });
+      });
+    });
+
+  // leave a group
+  router.route('/group/:groupId/leave')
+    .post(auth.isAuthenticated, function(req, res) {
+      var groupId = req.params.groupId;
+      var userId = req.user.id;
+      var username = req.user.username;
+
+      datastore.removeUserFrom(userId, groupId, function(err, reply) {
+        if (err) {
+          res.json({ error: err });
+          return;
+        }
+
+        res.json({ message: 'OK' });
+      });
+    });
+
+  // add users to a group
+  router.route('/group/:groupId/members/add')
+    .post(auth.isAuthenticated, function(req, res) {
+
+      if (!req.body){
+        res.json({ error: 'Null payload' });
+        return;
+      }
+
+      var userId = req.user.id;
+      var username = req.user.username;
+
+      var userIds = req.body.userIds;
+
+      if (!userIds) {
+        res.json({ error: 'Empty list of userIds' });
+        return;        
+      }
+
+      if (!Array.isArray(userIds)) {
+        userIds = [userIds];
+      }
+
+      var groupId = req.params.groupId;
+
+      var count = 0, warning = [], added = 0;
+
+      for (idx in userIds) {
+        datastore.addUserToGroup(userIds[idx], groupId, function(err, reply) {
+          if (err) {
+            warning.push(err);
+          } else added++;
+          count++;
+
+          if (count == userIds.length) {
+            if (warning.length > 0) {
+              res.json({ groupId: groupId, warning: warning.join('\n'), message: 'OK with warning', count: added });
+            } else {
+              res.json({ groupId: groupId, message: 'OK' , count: added });
+            }
+          }
+        });
+      }
+
+    });
+
+  // remove an user from a group
+  router.route('/group/:groupId/members/remove')
+    .post(auth.isAuthenticated, function(req, res) {
+      res.json({ error: 'Unfortunately this API is not supported yet.' });
+    });
+
+  /**
+   * Message resources
+   */
+
+  // get group messages
+  router.route('/messages/:groupId')
+    .get(auth.isAuthenticated, function(req, res) {
+      var groupId = req.params.groupId;
       var userId = req.user.id;
 
       var retrieve = function() {
@@ -143,47 +291,6 @@ module.exports = function(router, datastore, auth) {
         
     });
 
-  // create new group
-  router.route('/group')
-    .post(auth.isAuthenticated, function(req, res) {
-      if (!req.body){
-        res.json({ error: 'Null payload' });
-        return;
-      }
-
-      var userId = req.user.id;
-      var username = req.user.username;
-
-      var title = req.body.title;
-      var memberIds = req.body.members;
-
-      datastore.createGroup(title, userId, username, new Date().getTime(), function(err, groupId) {
-        if (err) {
-          res.json({ error: err });
-          return;
-        }
-
-        if (memberIds && memberIds.length > 0) {
-          var count = 0;
-          var warning = [];
-          for (idx in memberIds) {
-            datastore.addUserToGroup(memberIds[idx], groupId, function(err2, reply2) {
-              if (err2) {
-                warning.push(err2);
-              }
-              count++;
-
-              if (count == memberIds.length) {
-                res.json({ groupId: groupId, warning: warning.join('\n'), message: 'OK with warning' });
-              }
-            });
-          }
-        } else {
-          res.json({ groupId: groupId, message: 'OK' });
-        }
-      });
-
-    });
 }
 
 function isBlank(str) {
