@@ -40,7 +40,7 @@ $(function() {
   initUI();
   
   // init socket.io
-  var socket = io();
+  var socket = io(); //io('/', { transports: ['websocket'] });
 
   socket.emit('login', user);
 
@@ -85,6 +85,11 @@ $(function() {
   socket.on('online-counter', function(onlineCount) {
     console.log('Online counter: ' + onlineCount);
     $onlineCountSpan.text('Users online: ' + onlineCount);
+  });
+
+  socket.on('error', function(err) {
+    console.log('Error: ' + err);
+    alert('Error: Chat connection couldn\'t be established!');
   });
 
   function sendMessage(groupId, msg) {

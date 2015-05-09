@@ -16,14 +16,17 @@ module.exports = function(app, datastore, redisClient) {
   app.use(bodyParser.urlencoded({ extended: true }));
   app.use(bodyParser.json());
   
-  app.use(session({ 
-    store: new RedisStore({ client: redisClient }),
-    secret: config.sessionCookieSecret, 
+  var sessionStore = new RedisStore({ client: redisClient });
+  var sessionMiddleware = session({ 
+    store: sessionStore,
+    key: config.sessionCookieKey || '',
+    secret: config.sessionCookieSecret || 'keyboard cat', 
     saveUninitialized: true, 
     resave: true, cookie: 
     { maxAge: 600000 } 
-  }));
+  });
 
+  app.use(sessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
   app.use(flash());
@@ -172,5 +175,6 @@ module.exports = function(app, datastore, redisClient) {
   }
 
   module.exports.basicAuth = passport.authenticate('basic', { session: false });
+  module.exports.sessionMiddleware = sessionMiddleware;
   
 }

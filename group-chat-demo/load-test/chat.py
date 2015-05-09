@@ -35,6 +35,9 @@ def load_group_error(*args):
 def on_event(*args):
     print '%s' % args
 
+def on_error(*args):
+    print 'Error: %s' % args
+
 
 def create_socket(idx):
     global total_users, total_msg_received, total_msg_sent, user_lock, msg_sent_lock, msg_received_lock
@@ -50,7 +53,7 @@ def create_socket(idx):
 
         socketIO.on('chat-message', print_message)
 
-        socketIO.wait(seconds=10)
+        #socketIO.wait(seconds=10)
 
         socketIO.emit('chat-message', {
             'groupId': 1,
@@ -66,9 +69,11 @@ def create_socket(idx):
 
         socketIO.on('group-ready', group_ready)
 
+        socketIO.on('error', on_error)
+
         socketIO.wait(seconds=10000000)
 
-for idx in range(1, 201):
+for idx in range(1, 2):
     print idx
     thread.start_new_thread(create_socket, (idx, ))
 

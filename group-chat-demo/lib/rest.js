@@ -1,3 +1,5 @@
+var jwt = require('jsonwebtoken');
+var jwtSecret = require('./config.js').jwtSecret;
 
 module.exports = function(router, datastore, auth) {
   
@@ -291,6 +293,25 @@ module.exports = function(router, datastore, auth) {
         
     });
 
+  router.route('/get_token')
+    .get(auth.isAuthenticated, function(req, res) {
+      var token = jwt.sign(req.user, jwtSecret, { expiresInMinutes: 60*5 });
+      res.json({token: token});
+    });
+
+  router.route('/verify_token')
+    .get(auth.isAuthenticated, function(req, res) {
+      var token = req.query.token;
+      try {
+        jwt.verify(token, jwtSecret, function(err, decoded) {
+          if (err) res.json({ error: err });
+          else res.json(decoded);
+        });
+      } catch (ex) {
+        console.log('Error: ' + ex);
+        res.json({error: ex});
+      }
+    });
 }
 
 function isBlank(str) {

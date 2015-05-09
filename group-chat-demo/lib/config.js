@@ -5,5 +5,5 @@ module.exports = {
     port: 6379
   },
   serverPort: 3000,
-  
+  jwtSecret: 'arcobaleno'
 }

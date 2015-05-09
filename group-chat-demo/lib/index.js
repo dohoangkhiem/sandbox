@@ -16,11 +16,10 @@ var io = require('socket.io').listen(server);
 console.log('Server started at port ' + port);
 
 // configure Redis client connections
-var redisConnector = require('./redis_client.js'),
-  redisCredentials = config.redis;
+var redisConnector = require('./redis_client.js');
 
-var redisClient = redisConnector.createClient(redisCredentials), 
-  redisSubscriber = redisConnector.createClient(redisCredentials);
+var redisClient = redisConnector.createClient(), 
+  redisSubscriber = redisConnector.createClient();
 
 //redisSubscriber.subscribe('messages');
 
@@ -38,4 +37,4 @@ app.use('/rest', router);
 require('./rest.js')(router, datastore, auth);
 
 // init chat features
-require('./chat.js')(io, redisClient, redisSubscriber, datastore);
+require('./chat.js')(io, redisClient, redisSubscriber, datastore, auth.sessionMiddleware);

@@ -1,15 +1,52 @@
 var models = require('./models.js');
+var config = require('./config.js');
+var jwt   = require("jsonwebtoken");
+var jwtSecret = require('./config.js').jwtSecret;
 
-module.exports = function(io, redisClient, redisSubscriber, datastore) {
+module.exports = function(io, redisClient, redisSubscriber, datastore, sessionMiddleware) {
 
   // configure Socket.io with Redis Adapter
   var adapter = require('socket.io-redis');
+
+  //io.set('transports', ['websocket']);
 
   io.adapter(adapter({
     pubClient: redisClient,
     subClient: redisSubscriber
   }));
 
+  io.use(function(socket, next) {
+    sessionMiddleware(socket.request, socket.request.res, function(error) {
+      if (error) return next(error);
+
+      if (socket.request.session && socket.request.session.passport) {
+        return next();
+      }
+        
+      if (socket.request.query && socket.request.query.token) {
+        var token = socket.request.query.token;
+        try {
+          jwt.verify(token, jwtSecret, function(err, decoded) {
+            if (err) { 
+              return next(new Error(err));
+            }
+            if (decoded == null || decoded == undefined || decoded.id < 0 || !decoded.username) {
+              return next(new Error('Invalid token'));
+            }
+
+            socket.request.user = decoded;
+            return next();
+          });
+        } catch (ex) {
+          if (ex) return next(new Error(ex));
+          else return next(new Error('Authentication error'));
+        }
+      } else {
+        return next(new Error('No token provided'));
+      }
+    });
+  });
+  
   // socket hash maps userId with respective socket objects
   var socketHash = {};
 
